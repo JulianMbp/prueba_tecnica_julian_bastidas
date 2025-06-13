@@ -1,13 +1,13 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserValidationService } from '../messaging/user-validation.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { IOrderRepository } from './interfaces/order-repository.interface';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService', () => {
   let service: OrdersService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let orderRepository: jest.Mocked<IOrderRepository>;
   let userValidationService: jest.Mocked<UserValidationService>;
 
   const mockUser = {
@@ -36,14 +36,13 @@ describe('OrdersService', () => {
   };
 
   beforeEach(async () => {
-    const mockPrismaService = {
-      order: {
-        create: jest.fn(),
-        findMany: jest.fn(),
-        findFirst: jest.fn(),
-        update: jest.fn(),
-      },
-    } as any;
+    const mockOrderRepository = {
+      create: jest.fn(),
+      findByUserId: jest.fn(),
+      findAll: jest.fn(),
+      findByIdAndUserId: jest.fn(),
+      updateStatus: jest.fn(),
+    };
 
     const mockUserValidationService = {
       validateUser: jest.fn(),
@@ -53,8 +52,8 @@ describe('OrdersService', () => {
       providers: [
         OrdersService,
         {
-          provide: PrismaService,
-          useValue: mockPrismaService,
+          provide: 'IOrderRepository',
+          useValue: mockOrderRepository,
         },
         {
           provide: UserValidationService,
@@ -64,9 +63,8 @@ describe('OrdersService', () => {
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);
-
-    prismaService = module.get<jest.Mocked<PrismaService>>(PrismaService);
-
+    orderRepository =
+      module.get<jest.Mocked<IOrderRepository>>('IOrderRepository');
     userValidationService = module.get<jest.Mocked<UserValidationService>>(
       UserValidationService,
     );
@@ -74,6 +72,41 @@ describe('OrdersService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('findAllOrders', () => {
+    it('should return all orders for admin', async () => {
+      // Arrange
+      const mockOrders = [mockOrder, { ...mockOrder, id: 'order-uuid-456' }];
+      orderRepository.findAll.mockResolvedValue(mockOrders);
+
+      // Act
+      const result = await service.findAllOrders();
+
+      // Assert
+      expect(orderRepository.findAll).toHaveBeenCalled();
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: mockOrder.id,
+        userId: mockOrder.userId,
+        status: mockOrder.status,
+        totalAmount: mockOrder.totalAmount,
+        orderItems: mockOrder.orderItems,
+        createdAt: mockOrder.createdAt,
+        updatedAt: mockOrder.updatedAt,
+      });
+    });
+
+    it('should return empty array when no orders exist', async () => {
+      // Arrange
+      orderRepository.findAll.mockResolvedValue([]);
+
+      // Act
+      const result = await service.findAllOrders();
+
+      // Assert
+      expect(result).toEqual([]);
+    });
   });
 
   describe('createOrder', () => {
@@ -90,38 +123,22 @@ describe('OrdersService', () => {
     it('should successfully create an order', async () => {
       // Arrange
       const userId = 'user-uuid-123';
-      jest.spyOn(userValidationService, 'validateUser').mockResolvedValue({
+      userValidationService.validateUser.mockResolvedValue({
         isValid: true,
         user: mockUser,
       });
-      jest
-        .spyOn(prismaService.order, 'create')
-        .mockResolvedValue(mockOrder as any);
+      orderRepository.create.mockResolvedValue(mockOrder);
 
       // Act
       const result = await service.createOrder(userId, createOrderDto);
 
       // Assert
       expect(userValidationService.validateUser).toHaveBeenCalledWith(userId);
-      expect(prismaService.order.create).toHaveBeenCalledWith({
-        data: {
-          userId,
-          totalAmount: 59.98,
-          status: 'PENDING',
-          orderItems: {
-            create: [
-              {
-                productId: 'product-uuid-123',
-                quantity: 2,
-                price: 29.99,
-              },
-            ],
-          },
-        },
-        include: {
-          orderItems: true,
-        },
-      });
+      expect(orderRepository.create).toHaveBeenCalledWith(
+        userId,
+        createOrderDto,
+        59.98,
+      );
       expect(result).toEqual({
         id: mockOrder.id,
         userId: mockOrder.userId,
@@ -136,7 +153,7 @@ describe('OrdersService', () => {
     it('should throw BadRequestException when user is invalid', async () => {
       // Arrange
       const userId = 'invalid-user-id';
-      jest.spyOn(userValidationService, 'validateUser').mockResolvedValue({
+      userValidationService.validateUser.mockResolvedValue({
         isValid: false,
         error: 'Usuario no encontrado',
       });
@@ -146,7 +163,7 @@ describe('OrdersService', () => {
         new BadRequestException('Usuario no válido'),
       );
       expect(userValidationService.validateUser).toHaveBeenCalledWith(userId);
-      expect(prismaService.order.create).not.toHaveBeenCalled();
+      expect(orderRepository.create).not.toHaveBeenCalled();
     });
 
     it('should calculate total amount correctly', async () => {
@@ -168,7 +185,7 @@ describe('OrdersService', () => {
       };
       const expectedTotal = 2 * 10.5 + 1 * 25.0; // 46.00
 
-      jest.spyOn(userValidationService, 'validateUser').mockResolvedValue({
+      userValidationService.validateUser.mockResolvedValue({
         isValid: true,
         user: mockUser,
       });
@@ -176,33 +193,29 @@ describe('OrdersService', () => {
         ...mockOrder,
         totalAmount: expectedTotal,
       };
-      jest
-        .spyOn(prismaService.order, 'create')
-        .mockResolvedValue(mockOrderWithTotal as any);
+      orderRepository.create.mockResolvedValue(mockOrderWithTotal);
 
       // Act
       await service.createOrder(userId, multiItemOrderDto);
 
       // Assert
-      expect(prismaService.order.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            totalAmount: expectedTotal,
-          }),
-        }),
+      expect(orderRepository.create).toHaveBeenCalledWith(
+        userId,
+        multiItemOrderDto,
+        expectedTotal,
       );
     });
 
     it('should handle database errors', async () => {
       // Arrange
       const userId = 'user-uuid-123';
-      jest.spyOn(userValidationService, 'validateUser').mockResolvedValue({
+      userValidationService.validateUser.mockResolvedValue({
         isValid: true,
         user: mockUser,
       });
-      jest
-        .spyOn(prismaService.order, 'create')
-        .mockRejectedValue(new Error('Database connection failed'));
+      orderRepository.create.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
 
       // Act & Assert
       await expect(service.createOrder(userId, createOrderDto)).rejects.toThrow(
@@ -215,32 +228,35 @@ describe('OrdersService', () => {
     it('should return orders for valid user', async () => {
       // Arrange
       const userId = 'user-uuid-123';
-      jest.spyOn(userValidationService, 'validateUser').mockResolvedValue({
+      const mockOrders = [mockOrder];
+      userValidationService.validateUser.mockResolvedValue({
         isValid: true,
         user: mockUser,
       });
-      jest
-        .spyOn(prismaService.order, 'findMany')
-        .mockResolvedValue([mockOrder] as any);
+      orderRepository.findByUserId.mockResolvedValue(mockOrders);
 
       // Act
       const result = await service.findOrdersByUser(userId);
 
       // Assert
       expect(userValidationService.validateUser).toHaveBeenCalledWith(userId);
-      expect(prismaService.order.findMany).toHaveBeenCalledWith({
-        where: { userId },
-        include: { orderItems: true },
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(orderRepository.findByUserId).toHaveBeenCalledWith(userId);
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe(mockOrder.id);
+      expect(result[0]).toEqual({
+        id: mockOrder.id,
+        userId: mockOrder.userId,
+        status: mockOrder.status,
+        totalAmount: mockOrder.totalAmount,
+        orderItems: mockOrder.orderItems,
+        createdAt: mockOrder.createdAt,
+        updatedAt: mockOrder.updatedAt,
+      });
     });
 
     it('should throw BadRequestException for invalid user', async () => {
       // Arrange
       const userId = 'invalid-user-id';
-      jest.spyOn(userValidationService, 'validateUser').mockResolvedValue({
+      userValidationService.validateUser.mockResolvedValue({
         isValid: false,
         error: 'Usuario no encontrado',
       });
@@ -249,7 +265,8 @@ describe('OrdersService', () => {
       await expect(service.findOrdersByUser(userId)).rejects.toThrow(
         new BadRequestException('Usuario no válido'),
       );
-      expect(prismaService.order.findMany).not.toHaveBeenCalled();
+      expect(userValidationService.validateUser).toHaveBeenCalledWith(userId);
+      expect(orderRepository.findByUserId).not.toHaveBeenCalled();
     });
   });
 });

@@ -59,6 +59,30 @@ export class OrderRepository implements IOrderRepository {
     return orders as OrderWithItems[];
   }
 
+  async findAll(): Promise<OrderWithItems[]> {
+    const orders = await this.prisma.order.findMany({
+      include: {
+        orderItems: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return orders as OrderWithItems[];
+  }
+
+  async findById(orderId: string): Promise<OrderWithItems | null> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: true,
+      },
+    });
+
+    return order as OrderWithItems | null;
+  }
+
   async findByIdAndUserId(
     orderId: string,
     userId: string,

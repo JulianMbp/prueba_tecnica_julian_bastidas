@@ -8,6 +8,8 @@ export interface IOrderRepository {
     totalAmount: number,
   ): Promise<OrderWithItems>;
   findByUserId(userId: string): Promise<OrderWithItems[]>;
+  findAll(): Promise<OrderWithItems[]>;
+  findById(orderId: string): Promise<OrderWithItems | null>;
   findByIdAndUserId(
     orderId: string,
     userId: string,

@@ -69,6 +69,13 @@ export class OrdersService implements IOrderService {
     return orders.map((order) => this.mapToOrderResponse(order));
   }
 
+  async findAllOrders(): Promise<OrderResponseDto[]> {
+    this.logger.log('Finding all orders (admin request)');
+
+    const orders = await this.orderRepository.findAll();
+    return orders.map((order) => this.mapToOrderResponse(order));
+  }
+
   async updateOrderStatus(
     orderId: string,
     userId: string,
@@ -85,11 +92,19 @@ export class OrdersService implements IOrderService {
       throw new BadRequestException('Usuario no válido');
     }
 
-    // Verificar que el pedido existe y pertenece al usuario
-    const existingOrder = await this.orderRepository.findByIdAndUserId(
-      orderId,
-      userId,
-    );
+    let existingOrder: OrderWithItems | null = null;
+
+    // Si es ADMIN, puede actualizar cualquier orden
+    if (userValidation.user?.role === 'ADMIN') {
+      // Para ADMIN: buscar orden por ID solamente
+      existingOrder = await this.orderRepository.findById(orderId);
+    } else {
+      // Para usuarios normales: verificar que el pedido existe y pertenece al usuario
+      existingOrder = await this.orderRepository.findByIdAndUserId(
+        orderId,
+        userId,
+      );
+    }
 
     if (!existingOrder) {
       throw new NotFoundException('Pedido no encontrado');

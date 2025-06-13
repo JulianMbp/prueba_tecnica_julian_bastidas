@@ -16,6 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
@@ -65,8 +66,8 @@ export class OrdersController {
 
   @Get()
   @ApiOperation({
-    summary: 'Listar pedidos del usuario',
-    description: 'Obtiene todos los pedidos del usuario autenticado',
+    summary: 'Listar pedidos',
+    description: 'Si es ADMIN obtiene todos los pedidos, si es usuario normal solo los suyos',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -77,11 +78,39 @@ export class OrdersController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Token de autenticación requerido',
   })
-  async findUserOrders(
+  async findOrders(
     @Request() req: AuthenticatedRequest,
   ): Promise<OrderResponseDto[]> {
-    const userId = req.user.id;
+    const { id: userId, role } = req.user;
+    
+    if (role === 'ADMIN') {
+      return this.ordersService.findAllOrders();
+    }
+    
     return this.ordersService.findOrdersByUser(userId);
+  }
+
+  @Get('all')
+  @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary: 'Listar todos los pedidos (Solo ADMIN)',
+    description: 'Obtiene todos los pedidos del sistema. Requiere rol de ADMIN',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Lista de todos los pedidos obtenida exitosamente',
+    type: [OrderResponseDto],
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Acceso denegado. Se requiere rol de ADMIN',
+  })
+  async findAllOrders(): Promise<OrderResponseDto[]> {
+    return this.ordersService.findAllOrders();
   }
 
   @Patch(':id')

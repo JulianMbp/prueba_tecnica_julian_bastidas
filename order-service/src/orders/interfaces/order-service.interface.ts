@@ -8,6 +8,7 @@ export interface IOrderService {
     createOrderDto: CreateOrderDto,
   ): Promise<OrderResponseDto>;
   findOrdersByUser(userId: string): Promise<OrderResponseDto[]>;
+  findAllOrders(): Promise<OrderResponseDto[]>;
   updateOrderStatus(
     orderId: string,
     userId: string,
