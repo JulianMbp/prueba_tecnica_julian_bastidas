@@ -2,6 +2,8 @@
 
 Sistema de microservicios para gestión de usuarios y pedidos en e-commerce, desarrollado con **NestJS**, **PostgreSQL**, **Docker** y **RabbitMQ**.
 
+> **🆕 Versión 1.1.0** - Las respuestas de órdenes ahora incluyen información completa del usuario (nombre, email, rol) para mejor experiencia de usuario. Ver [Changelog](./docs/CHANGELOG.md) para más detalles.
+
 ## 📋 Tabla de Contenidos
 
 ### 📖 **Este Documento**
@@ -83,6 +85,7 @@ curl http://localhost:3002/health  # Order Service
 ### 📡 **APIs y Comunicación**
 - **[Documentación de APIs](./docs/API.md)** - Endpoints y ejemplos completos
 - **[RabbitMQ y Mensajería](./docs/MESSAGING.md)** - Colas y comunicación asíncrona
+- **[Changelog](./docs/CHANGELOG.md)** - Historial de cambios y versiones
 
 ### 🧪 **Testing y Calidad**
 - **[Guía de Testing](./docs/TESTING.md)** - Unit tests, integration tests

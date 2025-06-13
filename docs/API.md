@@ -153,6 +153,59 @@ Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
+### 🔄 Cambios en la Estructura de Respuesta
+
+**Importante:** A partir de la versión actual, las respuestas de órdenes incluyen información completa del usuario en lugar de solo el `userId`.
+
+#### Antes vs Después
+
+**Estructura Anterior:**
+```json
+{
+  "id": "order-uuid-123",
+  "userId": "user-uuid-123",
+  "status": "PENDING",
+  // ... otros campos
+}
+```
+
+**Estructura Actual:**
+```json
+{
+  "id": "order-uuid-123",
+  "user": {
+    "id": "user-uuid-123",
+    "name": "María García",
+    "email": "maria@example.com",
+    "role": "USER"
+  },
+  "status": "PENDING",
+  // ... otros campos
+}
+```
+
+#### Flujo de Datos
+
+```mermaid
+graph TD
+    A["Cliente solicita órdenes<br/>GET /orders"] --> B["OrdersController"]
+    B --> C["OrdersService"]
+    C --> D["UserValidationService<br/>obtiene datos del usuario"]
+    D --> E["OrderRepository<br/>obtiene órdenes"]
+    E --> F["Mapear respuesta con<br/>datos completos del usuario"]
+    F --> G["Respuesta JSON<br/>con usuario completo"]
+    
+    style D fill:#e1f5fe
+    style F fill:#e8f5e8
+    style G fill:#e8f5e8
+```
+
+#### Beneficios
+- ✅ **Menos peticiones**: No es necesario hacer consultas adicionales para obtener datos del usuario
+- ✅ **Mejor UX**: La información del usuario está disponible inmediatamente
+- ✅ **Consistencia**: Todas las respuestas incluyen la información completa del usuario
+- ✅ **Eficiencia**: Reduce la carga en el frontend al eliminar llamadas adicionales a la API
+
 #### POST /orders
 Crea un nuevo pedido.
 
@@ -173,7 +226,12 @@ Crea un nuevo pedido.
 ```json
 {
   "id": "uuid",
-  "userId": "uuid",
+  "user": {
+    "id": "uuid",
+    "name": "María García",
+    "email": "maria@example.com",
+    "role": "USER"
+  },
   "status": "PENDING",
   "totalAmount": 59.98,
   "createdAt": "2024-01-01T00:00:00.000Z",
@@ -205,7 +263,12 @@ Lista todos los pedidos del usuario autenticado.
 [
   {
     "id": "uuid",
-    "userId": "uuid",
+    "user": {
+      "id": "uuid",
+      "name": "María García",
+      "email": "maria@example.com",
+      "role": "USER"
+    },
     "status": "PENDING",
     "totalAmount": 59.98,
     "createdAt": "2024-01-01T00:00:00.000Z",
@@ -246,7 +309,12 @@ Actualiza el estado de un pedido específico.
 ```json
 {
   "id": "uuid",
-  "userId": "uuid",
+  "user": {
+    "id": "uuid",
+    "name": "María García",
+    "email": "maria@example.com",
+    "role": "USER"
+  },
   "status": "IN_PROCESS",
   "totalAmount": 59.98,
   "createdAt": "2024-01-01T00:00:00.000Z",
@@ -257,7 +325,7 @@ Actualiza el estado de un pedido específico.
       "orderId": "uuid",
       "productId": "product-123",
       "quantity": 2,
-      "price": 29.99,
+      "price": "29.99",
       "createdAt": "2024-01-01T00:00:00.000Z"
     }
   ]
