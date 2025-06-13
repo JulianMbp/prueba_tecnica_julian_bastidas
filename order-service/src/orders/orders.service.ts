@@ -52,7 +52,7 @@ export class OrdersService implements IOrderService {
       createOrderDto,
       totalAmount,
     );
-    return this.mapToOrderResponse(order);
+    return this.mapToOrderResponse(order, userValidation.user);
   }
 
   async findOrdersByUser(userId: string): Promise<OrderResponseDto[]> {
@@ -66,14 +66,24 @@ export class OrdersService implements IOrderService {
     }
 
     const orders = await this.orderRepository.findByUserId(userId);
-    return orders.map((order) => this.mapToOrderResponse(order));
+    return orders.map((order) =>
+      this.mapToOrderResponse(order, userValidation.user),
+    );
   }
 
   async findAllOrders(): Promise<OrderResponseDto[]> {
     this.logger.log('Finding all orders (admin request)');
 
     const orders = await this.orderRepository.findAll();
-    return orders.map((order) => this.mapToOrderResponse(order));
+    const ordersWithUsers = await Promise.all(
+      orders.map(async (order) => {
+        const userValidation = await this.userValidationService.validateUser(
+          order.userId,
+        );
+        return this.mapToOrderResponse(order, userValidation.user);
+      }),
+    );
+    return ordersWithUsers;
   }
 
   async updateOrderStatus(
@@ -120,7 +130,20 @@ export class OrdersService implements IOrderService {
       orderId,
       updateOrderStatusDto.status,
     );
-    return this.mapToOrderResponse(updatedOrder);
+
+    // Para actualizaciones, obtener la información del usuario de la orden
+    let orderUserValidation = userValidation;
+    if (
+      userValidation.user?.role === 'ADMIN' &&
+      existingOrder.userId !== userId
+    ) {
+      // Si es admin actualizando la orden de otro usuario, obtener datos del usuario de la orden
+      orderUserValidation = await this.userValidationService.validateUser(
+        existingOrder.userId,
+      );
+    }
+
+    return this.mapToOrderResponse(updatedOrder, orderUserValidation.user);
   }
 
   private validateStatusTransition(
@@ -140,10 +163,25 @@ export class OrdersService implements IOrderService {
     }
   }
 
-  private mapToOrderResponse(order: OrderWithItems): OrderResponseDto {
+  private mapToOrderResponse(
+    order: OrderWithItems,
+    user?: { id: string; email: string; name: string; role: string },
+  ): OrderResponseDto {
     return {
       id: order.id,
-      userId: order.userId,
+      user: user
+        ? {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          }
+        : {
+            id: order.userId,
+            name: 'Usuario no encontrado',
+            email: 'N/A',
+            role: 'N/A',
+          },
       status: order.status as OrderStatus,
       totalAmount: order.totalAmount,
       orderItems: order.orderItems.map((item) => ({

@@ -33,6 +33,32 @@ export class OrderItemResponseDto {
   createdAt: Date;
 }
 
+export class UserResponseDto {
+  @ApiProperty({
+    description: 'ID del usuario',
+    example: 'user-uuid-123',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Nombre del usuario',
+    example: 'Juan Pérez',
+  })
+  name: string;
+
+  @ApiProperty({
+    description: 'Correo electrónico del usuario',
+    example: 'juan.perez@email.com',
+  })
+  email: string;
+
+  @ApiProperty({
+    description: 'Rol del usuario',
+    example: 'USER',
+  })
+  role: string;
+}
+
 export class OrderResponseDto {
   @ApiProperty({
     description: 'ID del pedido',
@@ -41,10 +67,10 @@ export class OrderResponseDto {
   id: string;
 
   @ApiProperty({
-    description: 'ID del usuario',
-    example: 'user-uuid-123',
+    description: 'Información del usuario',
+    type: UserResponseDto,
   })
-  userId: string;
+  user: UserResponseDto;
 
   @ApiProperty({
     description: 'Estado del pedido',

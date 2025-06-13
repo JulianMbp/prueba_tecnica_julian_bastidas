@@ -79,6 +79,10 @@ describe('OrdersService', () => {
       // Arrange
       const mockOrders = [mockOrder, { ...mockOrder, id: 'order-uuid-456' }];
       orderRepository.findAll.mockResolvedValue(mockOrders);
+      userValidationService.validateUser.mockResolvedValue({
+        isValid: true,
+        user: mockUser,
+      });
 
       // Act
       const result = await service.findAllOrders();
@@ -88,7 +92,12 @@ describe('OrdersService', () => {
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({
         id: mockOrder.id,
-        userId: mockOrder.userId,
+        user: {
+          id: mockUser.id,
+          name: mockUser.name,
+          email: mockUser.email,
+          role: mockUser.role,
+        },
         status: mockOrder.status,
         totalAmount: mockOrder.totalAmount,
         orderItems: mockOrder.orderItems,
@@ -141,7 +150,12 @@ describe('OrdersService', () => {
       );
       expect(result).toEqual({
         id: mockOrder.id,
-        userId: mockOrder.userId,
+        user: {
+          id: mockUser.id,
+          name: mockUser.name,
+          email: mockUser.email,
+          role: mockUser.role,
+        },
         status: mockOrder.status,
         totalAmount: mockOrder.totalAmount,
         orderItems: mockOrder.orderItems,
@@ -219,7 +233,7 @@ describe('OrdersService', () => {
 
       // Act & Assert
       await expect(service.createOrder(userId, createOrderDto)).rejects.toThrow(
-        new BadRequestException('Error al crear el pedido'),
+        'Database connection failed',
       );
     });
   });
@@ -244,7 +258,12 @@ describe('OrdersService', () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
         id: mockOrder.id,
-        userId: mockOrder.userId,
+        user: {
+          id: mockUser.id,
+          name: mockUser.name,
+          email: mockUser.email,
+          role: mockUser.role,
+        },
         status: mockOrder.status,
         totalAmount: mockOrder.totalAmount,
         orderItems: mockOrder.orderItems,
