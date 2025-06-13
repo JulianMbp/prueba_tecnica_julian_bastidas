@@ -1,40 +1,30 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { UserValidationService } from '../messaging/user-validation.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
 import {
   OrderStatus,
   UpdateOrderStatusDto,
 } from './dto/update-order-status.dto';
-
-interface OrderWithItems {
-  id: string;
-  userId: string;
-  status: string;
-  totalAmount: number;
-  createdAt: Date;
-  updatedAt: Date;
-  orderItems: Array<{
-    id: string;
-    productId: string;
-    quantity: number;
-    price: number;
-    createdAt: Date;
-  }>;
-}
+import {
+  IOrderRepository,
+  OrderWithItems,
+} from './interfaces/order-repository.interface';
+import { IOrderService } from './interfaces/order-service.interface';
 
 @Injectable()
-export class OrdersService {
+export class OrdersService implements IOrderService {
   private readonly logger = new Logger(OrdersService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject('IOrderRepository')
+    private readonly orderRepository: IOrderRepository,
     private readonly userValidationService: UserValidationService,
   ) {}
 
@@ -57,31 +47,12 @@ export class OrdersService {
       0,
     );
 
-    try {
-      const order = await this.prisma.order.create({
-        data: {
-          userId,
-          totalAmount,
-          status: 'PENDING',
-          orderItems: {
-            create: createOrderDto.orderItems.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price,
-            })),
-          },
-        },
-        include: {
-          orderItems: true,
-        },
-      });
-
-      this.logger.log(`Order created successfully: ${order.id}`);
-      return this.mapToOrderResponse(order);
-    } catch (error) {
-      this.logger.error('Error creating order:', error);
-      throw new BadRequestException('Error al crear el pedido');
-    }
+    const order = await this.orderRepository.create(
+      userId,
+      createOrderDto,
+      totalAmount,
+    );
+    return this.mapToOrderResponse(order);
   }
 
   async findOrdersByUser(userId: string): Promise<OrderResponseDto[]> {
@@ -94,16 +65,7 @@ export class OrdersService {
       throw new BadRequestException('Usuario no válido');
     }
 
-    const orders = await this.prisma.order.findMany({
-      where: { userId },
-      include: {
-        orderItems: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
+    const orders = await this.orderRepository.findByUserId(userId);
     return orders.map((order) => this.mapToOrderResponse(order));
   }
 
@@ -124,12 +86,10 @@ export class OrdersService {
     }
 
     // Verificar que el pedido existe y pertenece al usuario
-    const existingOrder = await this.prisma.order.findFirst({
-      where: {
-        id: orderId,
-        userId,
-      },
-    });
+    const existingOrder = await this.orderRepository.findByIdAndUserId(
+      orderId,
+      userId,
+    );
 
     if (!existingOrder) {
       throw new NotFoundException('Pedido no encontrado');
@@ -141,21 +101,11 @@ export class OrdersService {
       updateOrderStatusDto.status,
     );
 
-    try {
-      const updatedOrder = await this.prisma.order.update({
-        where: { id: orderId },
-        data: { status: updateOrderStatusDto.status },
-        include: {
-          orderItems: true,
-        },
-      });
-
-      this.logger.log(`Order ${orderId} status updated successfully`);
-      return this.mapToOrderResponse(updatedOrder);
-    } catch (error) {
-      this.logger.error('Error updating order status:', error);
-      throw new BadRequestException('Error al actualizar el estado del pedido');
-    }
+    const updatedOrder = await this.orderRepository.updateStatus(
+      orderId,
+      updateOrderStatusDto.status,
+    );
+    return this.mapToOrderResponse(updatedOrder);
   }
 
   private validateStatusTransition(

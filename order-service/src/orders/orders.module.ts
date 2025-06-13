@@ -7,6 +7,7 @@ import { UserValidationService } from '../messaging/user-validation.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
+import { OrderRepository } from './repositories/order.repository';
 
 @Module({
   imports: [
@@ -29,7 +30,20 @@ import { OrdersService } from './orders.service';
     }),
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, PrismaService, UserValidationService, JwtStrategy],
+  providers: [
+    OrdersService,
+    PrismaService,
+    UserValidationService,
+    JwtStrategy,
+    {
+      provide: 'IOrderRepository',
+      useClass: OrderRepository,
+    },
+    {
+      provide: OrderRepository,
+      useClass: OrderRepository,
+    },
+  ],
   exports: [OrdersService],
 })
 export class OrdersModule {}
