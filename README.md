@@ -123,12 +123,6 @@ git push origin feature/amazing-feature
 # Abre un Pull Request
 ```
 
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT - ver **[LICENSE](./LICENSE)** para más detalles.
-
----
-
 ## 👨‍💻 Sobre el Desarrollador
 
 <div align="center">
