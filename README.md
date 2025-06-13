@@ -12,42 +12,6 @@ Sistema de microservicios para gestión de usuarios y pedidos en e-commerce, des
 - [🤝 Contribución](#-contribución)
 - [👨‍💻 Sobre el Desarrollador](#-sobre-el-desarrollador)
 
-### 📚 **Documentación Detallada**
-
-#### 🚀 **Primeros Pasos**
-- **[Instalación y Configuración](./docs/INSTALLATION.md)** - Setup completo del proyecto
-- **[Ejecución con Docker](./docs/DOCKER.md)** - Guía completa de contenedores
-- **[Variables de Entorno](./docs/ENVIRONMENT.md)** - Configuración de variables
-
-#### 🏗️ **Arquitectura y Desarrollo**
-- **[Arquitectura de Microservicios](./docs/ARCHITECTURE.md)** - Patrones y diseño del sistema
-- **[Guía de Desarrollo](./docs/DEVELOPMENT.md)** - Workflows y mejores prácticas
-- **[Estructura del Proyecto](./docs/PROJECT_STRUCTURE.md)** - Organización del código
-
-#### 🔐 **Autenticación y Seguridad**
-- **[Guía de Autenticación](./docs/AUTHENTICATION.md)** - JWT, guards y estrategias
-- **[Configuración de Seguridad](./docs/SECURITY.md)** - Mejores prácticas de seguridad
-
-#### 🗄️ **Base de Datos**
-- **[Esquemas y Modelos](./docs/DATABASE.md)** - Estructura de base de datos
-- **[Guía de Prisma](./docs/PRISMA.md)** - ORM, migraciones y queries
-
-#### 📡 **APIs y Comunicación**
-- **[Documentación de APIs](./docs/API.md)** - Endpoints y ejemplos completos
-- **[RabbitMQ y Mensajería](./docs/MESSAGING.md)** - Colas y comunicación asíncrona
-
-#### 🧪 **Testing y Calidad**
-- **[Guía de Testing](./docs/TESTING.md)** - Unit tests, integration tests
-- **[Estándares de Código](./docs/CODE_STANDARDS.md)** - Linting y convenciones
-
-#### 🚀 **Deployment y Producción**
-- **[Guía de Deployment](./docs/DEPLOYMENT.md)** - Producción y CI/CD
-- **[Monitoreo y Logs](./docs/MONITORING.md)** - Observabilidad del sistema
-
-#### 🤝 **Contribución**
-- **[Guía de Contribución](./docs/CONTRIBUTING.md)** - Cómo contribuir al proyecto
-
----
 
 ## 🚀 Inicio Rápido
 
