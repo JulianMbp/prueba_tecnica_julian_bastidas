@@ -66,6 +66,56 @@ curl http://localhost:3001/health  # User Service
 curl http://localhost:3002/health  # Order Service
 ```
 
+### 4. Configurar Usuario Administrador
+
+```bash
+# Opción A: Crear admin via SQL (Recomendado)
+docker-compose exec postgres psql -U postgres -d users_db
+
+# En el prompt de PostgreSQL:
+# 1. Primero crear un usuario normal via API
+# 2. Luego actualizar su rol:
+UPDATE users SET role = 'ADMIN' WHERE email = 'admin@example.com';
+
+# Opción B: Script interactivo (Recomendado)
+cd user-service
+npm run admin:create
+
+# El script te pedirá:
+# - Nombre del administrador
+# - Email del administrador  
+# - Contraseña
+# Y creará el usuario con rol ADMIN automáticamente
+
+# Opción C: Script rápido con datos predefinidos
+cd user-service
+npx ts-node -e "
+import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+
+const prisma = new PrismaClient();
+
+async function createAdmin() {
+  const hashedPassword = await bcrypt.hash('AdminPassword123!', 10);
+  
+  await prisma.user.upsert({
+    where: { email: 'admin@empresa.com' },
+    update: { role: 'ADMIN' },
+    create: {
+      name: 'Administrador',
+      email: 'admin@empresa.com',
+      password: hashedPassword,
+      role: 'ADMIN'
+    }
+  });
+  
+  console.log('✅ Admin creado: admin@empresa.com / AdminPassword123!');
+}
+
+createAdmin().finally(() => prisma.disconnect());
+"
+```
+
 ## Configuración Detallada
 
 ### Configuración de Variables de Entorno

@@ -6,6 +6,12 @@ Historial de cambios y mejoras del sistema de microservicios.
 
 ### ✨ Nuevas Características
 
+#### 👑 Gestión de Usuarios Administradores
+- **Script interactivo**: Nuevo script `npm run admin:create` para crear usuarios administradores fácilmente
+- **Documentación completa**: Guías detalladas para crear y gestionar administradores
+- **Múltiples métodos**: SQL directo, script interactivo, y comandos rápidos
+- **Validaciones**: Script con validaciones y manejo de errores robusto
+
 #### 🔄 Mejora en Respuestas de Órdenes
 - **Información completa del usuario**: Las respuestas de órdenes ahora incluyen los datos completos del usuario (nombre, email, rol) en lugar de solo el `userId`
 - **Optimización de consultas**: Eliminada la necesidad de hacer consultas adicionales para obtener información del usuario desde el frontend

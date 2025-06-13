@@ -154,6 +154,91 @@ enum Role {
 }
 ```
 
+### 👑 Creación de Usuario Administrador
+
+Por defecto, todos los usuarios se crean con rol `USER`. Para crear un administrador, hay varias opciones:
+
+#### Opción 1: Base de Datos Directa (Recomendado para primer admin)
+
+```sql
+-- Conectar a la base de datos
+docker-compose exec postgres psql -U postgres -d users_db
+
+-- Actualizar un usuario existente a ADMIN
+UPDATE users SET role = 'ADMIN' WHERE email = 'admin@example.com';
+
+-- Verificar el cambio
+SELECT id, email, name, role FROM users WHERE role = 'ADMIN';
+```
+
+#### Opción 2: Script de Inicialización
+
+```bash
+# Crear script para el primer administrador
+cd user-service
+
+# Crear archivo setup-admin.ts
+cat > src/setup-admin.ts << 'EOF'
+import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+
+const prisma = new PrismaClient();
+
+async function createAdmin() {
+  const adminEmail = 'admin@empresa.com';
+  const adminPassword = 'AdminPassword123!';
+  
+  // Verificar si ya existe
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail }
+  });
+  
+  if (existingAdmin) {
+    // Actualizar rol si existe
+    await prisma.user.update({
+      where: { email: adminEmail },
+      data: { role: 'ADMIN' }
+    });
+    console.log('✅ Usuario existente actualizado a ADMIN');
+  } else {
+    // Crear nuevo admin
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    
+    await prisma.user.create({
+      data: {
+        name: 'Administrador del Sistema',
+        email: adminEmail,
+        password: hashedPassword,
+        role: 'ADMIN'
+      }
+    });
+    console.log('✅ Usuario administrador creado');
+  }
+  
+  console.log(`📧 Email: ${adminEmail}`);
+  console.log(`🔐 Password: ${adminPassword}`);
+}
+
+createAdmin()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());
+EOF
+
+# Ejecutar el script
+npx ts-node src/setup-admin.ts
+```
+
+#### Opción 3: Endpoint Interno (Desarrollo)
+
+```typescript
+// user-service/src/users/users.controller.ts
+@Post('admin/create')
+@Public() // SOLO para desarrollo - remover en producción
+async createAdmin(@Body() createAdminDto: CreateAdminDto) {
+  return this.usersService.createAdmin(createAdminDto);
+}
+```
+
 ### Role Guard (Ejemplo)
 
 ```typescript
@@ -174,6 +259,22 @@ export class RolesGuard implements CanActivate {
     const { user } = context.switchToHttp().getRequest();
     return requiredRoles.some((role) => user.role === role);
   }
+}
+```
+
+### Decorador de Roles
+
+```typescript
+// user-service/src/auth/decorators/roles.decorator.ts
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
+
+// Uso en controladores
+@Get('admin/orders')
+@Roles(Role.ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard)
+async getAllOrders() {
+  return this.ordersService.findAllOrders();
 }
 ```
 

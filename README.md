@@ -76,6 +76,7 @@ curl http://localhost:3002/health  # Order Service
 
 ### 🔐 **Autenticación y Seguridad**
 - **[Guía de Autenticación](./docs/AUTHENTICATION.md)** - JWT, guards y estrategias
+- **[Configuración de Administradores](./docs/ADMIN_SETUP.md)** - Crear y gestionar usuarios admin
 - **[Configuración de Seguridad](./docs/SECURITY.md)** - Mejores prácticas de seguridad
 
 ### 🗄️ **Base de Datos**
