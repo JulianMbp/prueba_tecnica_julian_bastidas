@@ -156,6 +156,6 @@ Julian tiene experiencia en múltiples tecnologías: React, Angular, NestJS, Flu
 
 <div align="center">
 
-**Desarrollado con ❤️ por [Julian_MBP](https://github.com/JulianMbp) **
+**Desarrollado con ❤️ por [Julian_MBP](https://github.com/JulianMbp)**
 
 </div>
