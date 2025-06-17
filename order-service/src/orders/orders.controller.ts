@@ -67,7 +67,10 @@ export class OrdersController {
   @Get()
   @ApiOperation({
     summary: 'Listar pedidos',
-    description: 'Si es ADMIN obtiene todos los pedidos, si es usuario normal solo los suyos',
+    description: `
+    Si es ADMIN obtiene todos los pedidos, 
+    si es usuario normal solo los suyos
+    `,
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -82,11 +85,11 @@ export class OrdersController {
     @Request() req: AuthenticatedRequest,
   ): Promise<OrderResponseDto[]> {
     const { id: userId, role } = req.user;
-    
+
     if (role === 'ADMIN') {
       return this.ordersService.findAllOrders();
     }
-    
+
     return this.ordersService.findOrdersByUser(userId);
   }
 
@@ -114,10 +117,13 @@ export class OrdersController {
   }
 
   @Patch(':id')
+  @UseGuards(AdminGuard)
   @ApiOperation({
-    summary: 'Actualizar estado del pedido',
-    description:
-      'Cambia el estado de un pedido específico del usuario autenticado',
+    summary: 'Actualizar estado del pedido (Solo ADMIN)',
+    description: `
+    Cambia el estado de un pedido específico. 
+    Solo los administradores pueden aprobar o poner pedidos en proceso.
+    `,
   })
   @ApiParam({
     name: 'id',
@@ -140,6 +146,13 @@ export class OrdersController {
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
     description: 'Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: `
+    Acceso denegado. 
+    Se requiere rol de ADMIN para aprobar pedidos
+    `,
   })
   async updateOrderStatus(
     @Param('id') orderId: string,

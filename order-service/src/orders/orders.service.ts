@@ -102,6 +102,18 @@ export class OrdersService implements IOrderService {
       throw new BadRequestException('Usuario no válido');
     }
 
+    // NUEVA VALIDACIÓN: Solo ADMIN puede aprobar pedidos (cambiar a IN_PROCESS o COMPLETED)
+    if (userValidation.user?.role !== 'ADMIN') {
+      if (
+        updateOrderStatusDto.status === OrderStatus.IN_PROCESS ||
+        updateOrderStatusDto.status === OrderStatus.COMPLETED
+      ) {
+        throw new BadRequestException(
+          'Solo los administradores pueden aprobar o procesar pedidos',
+        );
+      }
+    }
+
     let existingOrder: OrderWithItems | null = null;
 
     // Si es ADMIN, puede actualizar cualquier orden
@@ -124,6 +136,7 @@ export class OrdersService implements IOrderService {
     this.validateStatusTransition(
       existingOrder.status as OrderStatus,
       updateOrderStatusDto.status,
+      userValidation.user?.role,
     );
 
     const updatedOrder = await this.orderRepository.updateStatus(
@@ -149,17 +162,34 @@ export class OrdersService implements IOrderService {
   private validateStatusTransition(
     currentStatus: OrderStatus,
     newStatus: OrderStatus,
+    userRole?: string,
   ): void {
-    const validTransitions: Record<OrderStatus, OrderStatus[]> = {
+    // Definir transiciones permitidas por rol
+    const adminTransitions: Record<OrderStatus, OrderStatus[]> = {
       [OrderStatus.PENDING]: [OrderStatus.IN_PROCESS, OrderStatus.COMPLETED],
       [OrderStatus.IN_PROCESS]: [OrderStatus.COMPLETED],
       [OrderStatus.COMPLETED]: [], // No se puede cambiar desde completado
     };
 
+    const userTransitions: Record<OrderStatus, OrderStatus[]> = {
+      [OrderStatus.PENDING]: [], // Los usuarios normales no pueden cambiar estados
+      [OrderStatus.IN_PROCESS]: [],
+      [OrderStatus.COMPLETED]: [],
+    };
+
+    const validTransitions =
+      userRole === 'ADMIN' ? adminTransitions : userTransitions;
+
     if (!validTransitions[currentStatus].includes(newStatus)) {
-      throw new BadRequestException(
-        `No se puede cambiar el estado de ${currentStatus} a ${newStatus}`,
-      );
+      if (userRole !== 'ADMIN') {
+        throw new BadRequestException(
+          'Solo los administradores pueden cambiar el estado de los pedidos',
+        );
+      } else {
+        throw new BadRequestException(
+          `No se puede cambiar el estado de ${currentStatus} a ${newStatus}`,
+        );
+      }
     }
   }
 
